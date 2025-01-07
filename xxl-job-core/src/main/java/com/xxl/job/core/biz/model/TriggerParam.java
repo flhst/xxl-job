@@ -4,25 +4,38 @@ import java.io.Serializable;
 
 /**
  * Created by xuxueli on 16/7/22.
+ *
+ * 触发参数
  */
 public class TriggerParam implements Serializable{
     private static final long serialVersionUID = 42L;
 
+    // 任务id
     private int jobId;
 
+    // 执行器任务handler
     private String executorHandler;
+    // 执行器任务参数
     private String executorParams;
+    // 执行器任务阻塞处理策略
     private String executorBlockStrategy;
+    // 任务超时时间
     private int executorTimeout;
 
+    // 日志id
     private long logId;
     private long logDateTime;
 
+    // GLUE类型
     private String glueType;
+    // GLUE源码
     private String glueSource;
+    // GLUE更新时间
     private long glueUpdatetime;
 
+    // 广播索引
     private int broadcastIndex;
+    // 广播总数
     private int broadcastTotal;
 
 

@@ -22,6 +22,7 @@ public class MethodJobHandler extends IJobHandler {
         this.destroyMethod = destroyMethod;
     }
 
+    // 执行方法
     @Override
     public void execute() throws Exception {
         Class<?>[] paramTypes = method.getParameterTypes();

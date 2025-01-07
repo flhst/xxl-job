@@ -18,11 +18,15 @@ import java.util.Properties;
  * i18n util
  *
  * @author xuxueli 2018-01-17 20:39:06
+ *
+ * 单例模式 懒加载
  */
 public class I18nUtil {
     private static Logger logger = LoggerFactory.getLogger(I18nUtil.class);
 
     private static Properties prop = null;
+
+    // 加载国籍化配置文件并返回Properties对象，懒加载
     public static Properties loadI18nProp(){
         if (prop != null) {
             return prop;

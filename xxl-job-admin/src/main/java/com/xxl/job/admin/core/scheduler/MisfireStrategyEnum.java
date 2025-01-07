@@ -4,16 +4,20 @@ import com.xxl.job.admin.core.util.I18nUtil;
 
 /**
  * @author xuxueli 2020-10-29 21:11:23
+ *
+ * 调度过期策略
  */
 public enum MisfireStrategyEnum {
 
     /**
      * do nothing
+     * 忽略
      */
     DO_NOTHING(I18nUtil.getString("misfire_strategy_do_nothing")),
 
     /**
      * fire once now
+     * 立即执行一次
      */
     FIRE_ONCE_NOW(I18nUtil.getString("misfire_strategy_fire_once_now"));
 

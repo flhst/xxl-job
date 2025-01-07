@@ -18,6 +18,8 @@ import java.util.concurrent.*;
  * job lose-monitor instance
  *
  * @author xuxueli 2015-9-1 18:05:56
+ *
+ * 任务丢失检测线程
  */
 public class JobCompleteHelper {
 	private static Logger logger = LoggerFactory.getLogger(JobCompleteHelper.class);
@@ -151,6 +153,20 @@ public class JobCompleteHelper {
 		return ReturnT.SUCCESS;
 	}
 
+	// 处理任务执行后的回调
+	// 		1、验证日志项：
+	// 			通过 handleCallbackParam.getLogId() 获取日志ID，
+	// 			并从数据库中加载对应的 XxlJobLog 对象。
+	// 			如果日志项不存在，返回失败结果。
+	// 			如果日志项已经处理过（handleCode > 0），返回失败结果，避免重复回调。
+	//		2、处理消息：
+	//			将现有的处理消息和新的处理消息拼接在一起。
+	//		3、保存日志：
+	//			更新日志的处理时间、处理状态和处理消息。
+	//			调用 XxlJobCompleter.updateHandleInfoAndFinish 方法完成日志更新。
+	//		4、返回成功结果。
+	//
+	//
 	private ReturnT<String> callback(HandleCallbackParam handleCallbackParam) {
 		// valid log item
 		XxlJobLog log = XxlJobAdminConfig.getAdminConfig().getXxlJobLogDao().load(handleCallbackParam.getLogId());

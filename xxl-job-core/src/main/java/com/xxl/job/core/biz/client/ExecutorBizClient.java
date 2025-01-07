@@ -8,6 +8,10 @@ import com.xxl.job.core.util.XxlJobRemotingUtil;
  * admin api test
  *
  * @author xuxueli 2017-07-28 22:14:52
+ *
+ * 执行器客户端
+ *
+ *  用于调度中心 -> 触发远程执行器 (XxlJobTrigger)
  */
 public class ExecutorBizClient implements ExecutorBiz {
 

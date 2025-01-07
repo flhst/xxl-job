@@ -109,6 +109,8 @@ public class XxlJobContext {
 
     // ---------------------- tool ----------------------
 
+    // InheritableThreadLocal 是一个特殊的线程局部变量，它允许子线程继承父线程的值。这里用于存储 XxlJobContext 对象，确保每个线程都有独立的上下文实例。
+    // https://www.cnblogs.com/54chensongxia/p/12015443.html
     private static InheritableThreadLocal<XxlJobContext> contextHolder = new InheritableThreadLocal<XxlJobContext>(); // support for child thread of job handler)
 
     public static void setXxlJobContext(XxlJobContext xxlJobContext){

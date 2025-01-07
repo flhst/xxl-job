@@ -8,6 +8,8 @@ import java.util.List;
 
 /**
  * @author xuxueli 2017-07-27 21:52:49
+ *
+ * 用来处理任务回调、注册和注销操作
  */
 public interface AdminBiz {
 

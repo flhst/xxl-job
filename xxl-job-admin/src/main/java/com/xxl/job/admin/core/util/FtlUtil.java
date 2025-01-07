@@ -17,6 +17,10 @@ public class FtlUtil {
 
     private static BeansWrapper wrapper = new BeansWrapperBuilder(Configuration.DEFAULT_INCOMPATIBLE_IMPROVEMENTS).build();     //BeansWrapper.getDefaultInstance();
 
+    // 从给定的包名中获取静态模型。具体步骤如下：
+    // 获取所有静态模型：通过 wrapper.getStaticModels() 获取所有静态模型。
+    // 根据包名获取特定静态模型：从所有静态模型中，通过包名获取特定的静态模型。
+    // 异常处理：如果在获取过程中发生异常，记录错误日志并返回 null。
     public static TemplateHashModel generateStaticModel(String packageName) {
         try {
             TemplateHashModel staticModels = wrapper.getStaticModels();

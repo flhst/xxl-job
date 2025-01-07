@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit;
  * job file clean thread
  *
  * @author xuxueli 2017-12-29 16:23:43
+ *
+ * 定期清理超过指定保留天数的日志文件
  */
 public class JobLogFileCleanThread {
     private static Logger logger = LoggerFactory.getLogger(JobLogFileCleanThread.class);
@@ -27,6 +29,7 @@ public class JobLogFileCleanThread {
 
     private Thread localThread;
     private volatile boolean toStop = false;
+    // 启动一个线程，清理超过指定天数的日志文件
     public void start(final long logRetentionDays){
 
         // limit min value
@@ -34,6 +37,8 @@ public class JobLogFileCleanThread {
             return;
         }
 
+        // 创建并启动一个新的线程localThread，
+        // 该线程会持续运行直到toStop标志被设置为true
         localThread = new Thread(new Runnable() {
             @Override
             public void run() {

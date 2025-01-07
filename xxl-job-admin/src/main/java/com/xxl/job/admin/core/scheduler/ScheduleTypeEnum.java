@@ -4,9 +4,12 @@ import com.xxl.job.admin.core.util.I18nUtil;
 
 /**
  * @author xuxueli 2020-10-29 21:11:23
+ *
+ * 调度类型
  */
 public enum ScheduleTypeEnum {
 
+    // 无
     NONE(I18nUtil.getString("schedule_type_none")),
 
     /**
@@ -16,6 +19,7 @@ public enum ScheduleTypeEnum {
 
     /**
      * schedule by fixed rate (in seconds)
+     * 固定速度
      */
     FIX_RATE(I18nUtil.getString("schedule_type_fix_rate")),
 

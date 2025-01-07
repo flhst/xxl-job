@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * Created by xuxueli on 2016/3/2 21:14.
+ *
+ * 任务执行器
  */
 public class XxlJobExecutor  {
     private static final Logger logger = LoggerFactory.getLogger(XxlJobExecutor.class);
@@ -31,11 +33,17 @@ public class XxlJobExecutor  {
     // ---------------------- param ----------------------
     private String adminAddresses;
     private String accessToken;
+    // 本地应用名字
     private String appname;
+    // 本地地址
     private String address;
+    // 本地的ip
     private String ip;
+    // 本地的端口
     private int port;
+    // 日志路径
     private String logPath;
+    // 保留日志的天数
     private int logRetentionDays;
 
     public void setAdminAddresses(String adminAddresses) {
@@ -65,22 +73,28 @@ public class XxlJobExecutor  {
 
 
     // ---------------------- start + stop ----------------------
+    // 初始化xxl-job 执行器的各项服务
     public void start() throws Exception {
 
         // init logpath
+        // 初始化日志路径
         XxlJobFileAppender.initLogPath(logPath);
 
         // init invoker, admin-client
+        // 初始化 admin 客户端
         initAdminBizList(adminAddresses, accessToken);
 
 
         // init JobLogFileCleanThread
+        // 启动日志清理线程
         JobLogFileCleanThread.getInstance().start(logRetentionDays);
 
         // init TriggerCallbackThread
+        // 启动触发回调线程
         TriggerCallbackThread.getInstance().start();
 
         // init executor-server
+        // 启动执行器服务
         initEmbedServer(address, ip, port, appname, accessToken);
     }
 
@@ -140,6 +154,7 @@ public class XxlJobExecutor  {
     // ---------------------- executor-server (rpc provider) ----------------------
     private EmbedServer embedServer = null;
 
+    // 初始化并启动一个内嵌的http服务（嵌入式服务器EmbedServer）
     private void initEmbedServer(String address, String ip, int port, String appname, String accessToken) throws Exception {
 
         // fill ip port
@@ -175,6 +190,7 @@ public class XxlJobExecutor  {
 
 
     // ---------------------- job handler repository ----------------------
+    // 一个方法对应一个IJobHandler
     private static ConcurrentMap<String, IJobHandler> jobHandlerRepository = new ConcurrentHashMap<String, IJobHandler>();
     public static IJobHandler loadJobHandler(String name){
         return jobHandlerRepository.get(name);
@@ -183,6 +199,24 @@ public class XxlJobExecutor  {
         logger.info(">>>>>>>>>>> xxl-job register jobhandler success, name:{}, jobHandler:{}", name, jobHandler);
         return jobHandlerRepository.put(name, jobHandler);
     }
+
+    // 注册一个xxl-job任务处理器
+    // 默认情况下，任务处理器名称是任务的value值，即@XxlJob("demoJobHandler")
+    //      1、参数检查：
+    //          检查传入的XxlJob注解是否为null，如果是则直接返回。
+    //      2、获取任务名称：
+    //          从XxlJob注解中获取任务名称。
+    //      3、验证任务名称：
+    //          确保任务名称不为空，否则抛出异常。
+    //      4、检查命名冲突：
+    //          确保任务名称在任务处理器仓库中不存在，否则抛出异常。
+    //      5、设置执行方法：
+    //          使执行方法可访问。
+    //      6、查找初始化和销毁方法：
+    //          根据XxlJob注解中的init和destroy属性查找对应的初始化和销毁方法，
+    //          并确保它们存在且可访问。
+    //      7、注册任务处理器：
+    //          创建一个新的MethodJobHandler对象，并将其注册到任务处理器仓库中。
     protected void registJobHandler(XxlJob xxlJob, Object bean, Method executeMethod){
         if (xxlJob == null) {
             return;
@@ -209,6 +243,7 @@ public class XxlJobExecutor  {
                     "The correct method format like \" public ReturnT<String> execute(String param) \" .");
         }*/
 
+        // 设置方法为可以访问状态，即使该方法是私有的或受保护的，通过调用 setAccessible(true) 方法，可以在反射过程中忽略 Java 的访问控制检查，从而能够调用该方法。
         executeMethod.setAccessible(true);
 
         // init and destroy
@@ -239,6 +274,7 @@ public class XxlJobExecutor  {
 
 
     // ---------------------- job thread repository ----------------------
+    // 一个任务id对应一个JobThread
     private static ConcurrentMap<Integer, JobThread> jobThreadRepository = new ConcurrentHashMap<Integer, JobThread>();
     public static JobThread registJobThread(int jobId, IJobHandler handler, String removeOldReason){
         JobThread newJobThread = new JobThread(jobId, handler);

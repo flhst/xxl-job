@@ -6,6 +6,8 @@ import java.lang.annotation.*;
  * annotation for method jobhandler
  *
  * @author xuxueli 2019-12-11 20:50:13
+ *
+ * 标记方法为任务处理器的注解
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

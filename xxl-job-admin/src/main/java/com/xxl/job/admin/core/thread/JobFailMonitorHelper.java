@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit;
  * job monitor instance
  *
  * @author xuxueli 2015-9-1 18:05:56
+ *
+ * 任务失败报警线程
  */
 public class JobFailMonitorHelper {
 	private static Logger logger = LoggerFactory.getLogger(JobFailMonitorHelper.class);

@@ -4,6 +4,8 @@ import com.xxl.job.core.biz.model.*;
 
 /**
  * Created by xuxueli on 17/3/1.
+ *
+ * 任务执行器具体逻辑实现
  */
 public interface ExecutorBiz {
 

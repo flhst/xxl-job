@@ -18,6 +18,24 @@ public class ExecutorRouteRound extends ExecutorRouter {
     private static ConcurrentMap<Integer, AtomicInteger> routeCountEachJob = new ConcurrentHashMap<>();
     private static long CACHE_VALID_TIME = 0;
 
+    // 为每个 jobId 计算并返回一个递增的计数值。
+    // 具体步骤如下：
+    //      1、缓存清理：
+    //          检查当前时间是否超过了缓存的有效时间（24小时）。
+    //          如果是，则清空 routeCountEachJob 缓存，
+    //          并更新 CACHE_VALID_TIME。
+    //      2、获取计数器：
+    //          从 routeCountEachJob 中获取与 jobId 对应的 AtomicInteger 计数器。
+    //      3、初始化计数器：
+    //          如果计数器不存在或超过 1000000，
+    //          则重新初始化为一个随机值（0 到 99 之间）。
+    //      4、递增计数器：
+    //          如果计数器存在且未超过 1000000，
+    //          则递增计数器。
+    //      5、更新缓存：
+    //          将更新后的计数器放回 routeCountEachJob。
+    //      6、返回计数值：
+    //          返回当前计数器的值。
     private static int count(int jobId) {
         // cache clear
         if (System.currentTimeMillis() > CACHE_VALID_TIME) {

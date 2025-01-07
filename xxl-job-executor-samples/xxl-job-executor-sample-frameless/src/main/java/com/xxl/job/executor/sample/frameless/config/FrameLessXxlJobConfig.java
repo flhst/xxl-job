@@ -65,6 +65,7 @@ public class FrameLessXxlJobConfig {
     }
 
 
+    // 加载指定名称的属性文件，并将其内容封装到Properties对象返回
     public static Properties loadProperties(String propertyFileName) {
         InputStreamReader in = null;
         try {

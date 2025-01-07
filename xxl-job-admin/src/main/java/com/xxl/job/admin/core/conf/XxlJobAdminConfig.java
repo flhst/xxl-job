@@ -32,6 +32,7 @@ public class XxlJobAdminConfig implements InitializingBean, DisposableBean {
 
     private XxlJobScheduler xxlJobScheduler;
 
+    // 在初始化后，调用该接口，进行调度器的初始化
     @Override
     public void afterPropertiesSet() throws Exception {
         adminConfig = this;
@@ -40,6 +41,7 @@ public class XxlJobAdminConfig implements InitializingBean, DisposableBean {
         xxlJobScheduler.init();
     }
 
+    // 进行调度器的销毁
     @Override
     public void destroy() throws Exception {
         xxlJobScheduler.destroy();

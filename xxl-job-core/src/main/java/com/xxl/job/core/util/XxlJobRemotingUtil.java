@@ -64,6 +64,26 @@ public class XxlJobRemotingUtil {
      * @param requestObj
      * @param returnTargClassOfT
      * @return
+     *
+     * 用于发送HTTP POST请求并处理响应
+     *      1、建立连接：
+     *          根据传入的 URL 创建 HttpURLConnection 对象。
+     *      2、信任 HTTPS：
+     *          如果 URL 是 HTTPS，则设置信任所有主机。
+     *      3、设置请求参数：
+     *          设置请求方法为 POST，配置超时时间、请求头等。
+     *      4、添加访问令牌：
+     *          如果提供了访问令牌，则在请求头中添加。
+     *      5、发送请求体：
+     *          将请求对象转换为 JSON 字符串并写入请求体。
+     *      6、验证状态码：
+     *          检查响应状态码是否为 200，如果不是则返回失败结果。
+     *      7、读取响应：
+     *          读取响应内容并解析为 ReturnT 对象。
+     *      8、异常处理：
+     *          捕获并记录异常，返回失败结果。
+     *      9、资源释放：
+     *          关闭 BufferedReader 和 HttpURLConnection。
      */
     public static ReturnT postBody(String url, String accessToken, int timeout, Object requestObj, Class returnTargClassOfT) {
         HttpURLConnection connection = null;

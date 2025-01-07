@@ -2,6 +2,8 @@ package com.xxl.job.core.enums;
 
 /**
  * Created by xuxueli on 17/5/10.
+ *
+ * 注册类型枚举类
  */
 public class RegistryConfig {
 

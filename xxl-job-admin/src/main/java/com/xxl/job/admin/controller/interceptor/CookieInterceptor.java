@@ -15,6 +15,9 @@ import java.util.HashMap;
  * push cookies to model as cookieMap
  *
  * @author xuxueli 2015-12-12 18:09:04
+ *
+ * 在请求处理完成后，将请求中的Cookies转换为一个Map并添加到模型中，
+ * 同时将一些静态方法也添加到模型中
  */
 @Component
 public class CookieInterceptor implements AsyncHandlerInterceptor {

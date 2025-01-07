@@ -74,14 +74,13 @@ public class GsonTool {
      * json 转成 特定的cls的list
      *
      * @param json
-     * @param classOfT
+     * @param typeToken
      * @return
      */
-    public static <T> List<T> fromJsonList(String json, Class<T> classOfT) {
+    public static <T> List<T> fromJsonList(String json, TypeToken<List<T>> typeToken) {
         return gson.fromJson(
                 json,
-                new TypeToken<List<T>>() {
-                }.getType()
+                typeToken
         );
     }
 

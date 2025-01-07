@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Created by xuxueli on 16/7/22.
+ *
+ * 触发回调线程，用于处理触发回调
  */
 public class TriggerCallbackThread {
     private static Logger logger = LoggerFactory.getLogger(TriggerCallbackThread.class);
@@ -159,6 +161,13 @@ public class TriggerCallbackThread {
     /**
      * do callback, will retry if error
      * @param callbackParamList
+     *
+     * 执行回调操作，并在失败时重试
+     *      1、初始化 callbackRet 为 false，表示回调是否成功。
+     *      2、遍历 XxlJobExecutor 中的所有 AdminBiz 实例，尝试调用每个实例的 callback 方法。
+     *      3、如果回调成功（返回码为 ReturnT.SUCCESS_CODE），记录日志并设置 callbackRet 为 true，跳出循环。
+     *      4、如果回调失败或抛出异常，记录相应的日志。
+     *      5、如果所有 AdminBiz 实例都未能成功回调，则将回调参数写入失败回调文件。
      */
     private void doCallback(List<HandleCallbackParam> callbackParamList){
         boolean callbackRet = false;

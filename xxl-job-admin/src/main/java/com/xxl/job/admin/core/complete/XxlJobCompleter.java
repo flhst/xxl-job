@@ -42,6 +42,8 @@ public class XxlJobCompleter {
 
     /**
      * do somethind to finish job
+     *
+     * 在任务完成后触发子任务，并记录相关日志
      */
     private static void finishJob(XxlJobLog xxlJobLog){
 

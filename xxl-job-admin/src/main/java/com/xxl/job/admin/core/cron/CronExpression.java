@@ -198,6 +198,8 @@ import java.util.TreeSet;
  *
  * Borrowed from quartz v2.3.1
  *
+ * https://www.cnblogs.com/hungryquiter/p/16972952.html
+ *
  */
 public final class CronExpression implements Serializable, Cloneable {
 
@@ -250,11 +252,17 @@ public final class CronExpression implements Serializable, Cloneable {
     protected transient TreeSet<Integer> daysOfWeek;
     protected transient TreeSet<Integer> years;
 
+    // 是否是本周最后一天
     protected transient boolean lastdayOfWeek = false;
+    // 本周的第几天
     protected transient int nthdayOfWeek = 0;
+    // 是否为本月最后一天
     protected transient boolean lastdayOfMonth = false;
+    // 是否是最近的工作日
     protected transient boolean nearestWeekday = false;
+    // 最后一天的偏移量
     protected transient int lastdayOffset = 0;
+    // 表达式是否已经解析
     protected transient boolean expressionParsed = false;
     
     public static final int MAX_YEAR = Calendar.getInstance().get(Calendar.YEAR) + 100;
@@ -311,13 +319,16 @@ public final class CronExpression implements Serializable, Cloneable {
      * @param date the date to evaluate
      * @return a boolean indicating whether the given date satisfies the cron
      *         expression
+     *
+     * 判断给定的日期是否满足表达式。注意，毫秒被忽略，因此两个在相同毫秒的日期将始终产生相同的结果。
      */
     public boolean isSatisfiedBy(Date date) {
         Calendar testDateCal = Calendar.getInstance(getTimeZone());
         testDateCal.setTime(date);
         testDateCal.set(Calendar.MILLISECOND, 0);
         Date originalDate = testDateCal.getTime();
-        
+
+        // 减去1s
         testDateCal.add(Calendar.SECOND, -1);
         
         Date timeAfter = getTimeAfter(testDateCal.getTime());
@@ -344,6 +355,10 @@ public final class CronExpression implements Serializable, Cloneable {
      * @param date the date/time at which to begin the search for the next 
      *             invalid date/time
      * @return the next valid date/time
+     *
+     * 返回给定时间之后第一个不满足Cron表达式的时间
+     *
+     * 判断下次的执行时间 - 给定的时候是否等于1000ms
      */
     public Date getNextInvalidTimeAfter(Date date) {
         long difference = 1000;
@@ -361,13 +376,16 @@ public final class CronExpression implements Serializable, Cloneable {
         //keep getting the next included time until it's farther than one second
         // apart. At that point, lastDate is the last valid fire time. We return
         // the second immediately following it.
+        // 只有表达式包含每秒，才会需要继续寻在下次运行时间
         while (difference == 1000) {
             newDate = getTimeAfter(lastDate);
             if(newDate == null) {
                 break;
             }
+            // difference = 1000 表示满足表达式
             difference = newDate.getTime() - lastDate.getTime();
-            
+
+            // 为求下一次时间做准备
             if (difference == 1000) {
                 lastDate = newDate;
             }
@@ -382,6 +400,7 @@ public final class CronExpression implements Serializable, Cloneable {
      */
     public TimeZone getTimeZone() {
         if (timeZone == null) {
+            // 系统默认时区
             timeZone = TimeZone.getDefault();
         }
 
@@ -464,6 +483,7 @@ public final class CronExpression implements Serializable, Cloneable {
                 years = new TreeSet<Integer>();
             }
 
+            // 当前正在解析的表达式的哪个字段
             int exprOn = SECOND;
 
             StringTokenizer exprsTok = new StringTokenizer(expression, " \t",
@@ -473,13 +493,16 @@ public final class CronExpression implements Serializable, Cloneable {
                 String expr = exprsTok.nextToken().trim();
 
                 // throw an exception if L is used with other days of the month
+                // 如果 L 或 LW 与其它天数一起使用（通过逗号分隔），则抛出异常
                 if(exprOn == DAY_OF_MONTH && expr.indexOf('L') != -1 && expr.length() > 1 && expr.contains(",")) {
                     throw new ParseException("Support for specifying 'L' and 'LW' with other days of the month is not implemented", -1);
                 }
                 // throw an exception if L is used with other days of the week
+                // 如果 L 或 LW 与其它星期几一起使用（通过逗号分隔），则抛出异常
                 if(exprOn == DAY_OF_WEEK && expr.indexOf('L') != -1 && expr.length() > 1  && expr.contains(",")) {
                     throw new ParseException("Support for specifying 'L' with other days of the week is not implemented", -1);
                 }
+                // # 在DAY_OF_WEEK中多次出现（即指定多个"第n个星期几"），抛出异常
                 if(exprOn == DAY_OF_WEEK && expr.indexOf('#') != -1 && expr.indexOf('#', expr.indexOf('#') +1) != -1) {
                     throw new ParseException("Support for specifying multiple \"nth\" days is not implemented.", -1);
                 }
@@ -502,19 +525,23 @@ public final class CronExpression implements Serializable, Cloneable {
                 storeExpressionVals(0, "*", YEAR);
             }
 
+            // 表达式中是否同时指定了day-of-week和day-of-month
             TreeSet<Integer> dow = getSet(DAY_OF_WEEK);
             TreeSet<Integer> dom = getSet(DAY_OF_MONTH);
 
             // Copying the logic from the UnsupportedOperationException below
-            boolean dayOfMSpec = !dom.contains(NO_SPEC);
-            boolean dayOfWSpec = !dow.contains(NO_SPEC);
-
-            if (!dayOfMSpec || dayOfWSpec) {
-                if (!dayOfWSpec || dayOfMSpec) {
-                    throw new ParseException(
-                            "Support for specifying both a day-of-week AND a day-of-month parameter is not implemented.", 0);
-                }
+            if (dom.contains(NO_SPEC) && dow.contains(NO_SPEC)) {
+                throw new ParseException("Support for specifying both a day-of-week AND a day-of-month parameter is not implemented.", 0);
             }
+//            boolean dayOfMSpec = !dom.contains(NO_SPEC);
+//            boolean dayOfWSpec = !dow.contains(NO_SPEC);
+//
+//            if (!dayOfMSpec || dayOfWSpec) {
+//                if (!dayOfWSpec || dayOfMSpec) {
+//                    throw new ParseException(
+//                            "Support for specifying both a day-of-week AND a day-of-month parameter is not implemented.", 0);
+//                }
+//            }
         } catch (ParseException pe) {
             throw pe;
         } catch (Exception e) {
@@ -532,6 +559,17 @@ public final class CronExpression implements Serializable, Cloneable {
             return i;
         }
         char c = s.charAt(i);
+        // 正则表达式 ^L-[0-9]*[W]? 的含义如下：
+        //      1、^：
+        //          表示字符串的开始位置。确保匹配从字符串的开头开始。
+        //      2、L-：
+        //          匹配字符 "L-"，即字母 L 后面跟一个连字符 -。
+        //      3、[0-9]*：
+        //          [0-9]：匹配任意一个数字字符（0-9）。
+        //          *：表示前面的字符（数字）可以出现 0 次或多次。
+        //      4、[W]?：
+        //          [W]：匹配字符 W。
+        //          ?：表示前面的字符（W）是可选的，可以出现 0 次或 1 次。
         if ((c >= 'A') && (c <= 'Z') && (!s.equals("L")) && (!s.equals("LW")) && (!s.matches("^L-[0-9]*[W]?"))) {
             String sub = s.substring(i, i + 3);
             int sval = -1;
@@ -553,6 +591,7 @@ public final class CronExpression implements Serializable, Cloneable {
                     }
                 }
             } else if (type == DAY_OF_WEEK) {
+                // 获取星期几的数值
                 sval = getDayOfWeekNumber(sub);
                 if (sval < 0) {
                     throw new ParseException("Invalid Day-of-Week value: '"
@@ -560,6 +599,7 @@ public final class CronExpression implements Serializable, Cloneable {
                 }
                 if (s.length() > i + 3) {
                     c = s.charAt(i + 3);
+                    // 如果当前字符是-，表示范围
                     if (c == '-') {
                         i += 4;
                         sub = s.substring(i, i + 3);
@@ -569,6 +609,7 @@ public final class CronExpression implements Serializable, Cloneable {
                                     "Invalid Day-of-Week value: '" + sub
                                         + "'", i);
                         }
+                    // 如果当前字符c是#，表示特定周的某天，#后面表示第几个周
                     } else if (c == '#') {
                         try {
                             i += 4;
@@ -581,6 +622,7 @@ public final class CronExpression implements Serializable, Cloneable {
                                     "A numeric value between 1 and 5 must follow the '#' option",
                                     i);
                         }
+                    // 表示这个月的最后一个周的某天
                     } else if (c == 'L') {
                         lastdayOfWeek = true;
                         i++;
@@ -612,6 +654,8 @@ public final class CronExpression implements Serializable, Cloneable {
                             i);
             }
             if (type == DAY_OF_WEEK && !lastdayOfMonth) {
+                // lastdayOfWeek is already set.
+                // 保证Day-of-Month字段被正确设置
                 int val = daysOfMonth.last();
                 if (val == NO_SPEC_INT) {
                     throw new ParseException(
@@ -623,7 +667,16 @@ public final class CronExpression implements Serializable, Cloneable {
             addToSet(NO_SPEC_INT, -1, 0, type);
             return i;
         }
-
+        // 处理Cron表达式中*和/字符的解析逻辑
+        //      1、处理*字符：
+        //          如果*是最后一个字符，则将其添加到集合中。
+        //          否则，检查是否有增量符号/。
+        //      2、处理/字符：
+        ///         必须跟随一个整数，否则抛出异常。
+        //          获取增量值并进行范围检查。
+        //          将增量值添加到集合中。
+        //      3、默认增量：
+        //          如果没有指定增量，默认增量为1。
         if (c == '*' || c == '/') {
             if (c == '*' && (i + 1) >= s.length()) {
                 addToSet(ALL_SPEC_INT, -1, incr, type);
@@ -655,6 +708,16 @@ public final class CronExpression implements Serializable, Cloneable {
 
             addToSet(ALL_SPEC_INT, -1, incr, type);
             return i;
+        // 处理Cron表达式中字符L的解析逻辑
+        //      1、字符L的处理：
+        //          如果L出现在DAY_OF_MONTH位置，
+        //      表示该月最后一天，并设置lastdayOfMonth为true。
+        //          如果L出现在DAY_OF_WEEK位置，
+        //          表示星期日（值为7），并将其添加到集合中。
+        //      2、偏移量处理：
+        //          如果L后面跟着-符号，表示从最后一天偏移若干天，计算偏移量并检查是否超过30天。
+        //      3、最近工作日处理：
+        //          如果L后面跟着W符号，表示该月最后一天的最近工作日，并设置nearestWeekday为true。
         } else if (c == 'L') {
             i++;
             if (type == DAY_OF_MONTH) {
@@ -704,6 +767,7 @@ public final class CronExpression implements Serializable, Cloneable {
         return i;
     }
 
+    // 检查给定的增量是否在允许的范围内
     private void checkIncrementRange(int incr, int type, int idxPos) throws ParseException {
         if (incr > 59 && (type == SECOND || type == MINUTE)) {
             throw new ParseException("Increment > 60 : " + incr, idxPos);

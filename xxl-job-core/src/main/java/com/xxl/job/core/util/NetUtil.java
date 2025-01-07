@@ -16,6 +16,7 @@ public class NetUtil {
 
     /**
      * find avaliable port
+     * 寻找可用端口
      *
      * @param defaultPort
      * @return
@@ -42,6 +43,7 @@ public class NetUtil {
 
     /**
      * check port used
+     * 检查端口是否正在被使用
      *
      * @param port
      * @return

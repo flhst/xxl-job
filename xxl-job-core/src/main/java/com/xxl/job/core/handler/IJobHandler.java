@@ -4,6 +4,8 @@ package com.xxl.job.core.handler;
  * job handler
  *
  * @author xuxueli 2015-12-19 19:06:38
+ *
+ * 处理任务抽象类
  */
 public abstract class IJobHandler {
 

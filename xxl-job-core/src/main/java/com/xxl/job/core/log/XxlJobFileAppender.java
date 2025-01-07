@@ -11,6 +11,10 @@ import java.util.Date;
 /**
  * store trigger log in each log-file
  * @author xuxueli 2016-3-12 19:25:12
+ *
+ * 文件附加器
+ *
+ * 主要用来记录和管理XXL-Job调度框架的日志文件
  */
 public class XxlJobFileAppender {
 	private static Logger logger = LoggerFactory.getLogger(XxlJobFileAppender.class);
@@ -30,6 +34,8 @@ public class XxlJobFileAppender {
 	 */
 	private static String logBasePath = "/data/applogs/xxl-job/jobhandler";
 	private static String glueSrcPath = logBasePath.concat("/gluesource");
+
+	// 初始化日志路径
 	public static void initLogPath(String logPath){
 		// init
 		if (logPath!=null && logPath.trim().length()>0) {

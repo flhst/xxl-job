@@ -16,6 +16,8 @@ import java.util.concurrent.*;
 /**
  * job registry instance
  * @author xuxueli 2016-10-02 19:10:24
+ *
+ * 任务注册线程
  */
 public class JobRegistryHelper {
 	private static Logger logger = LoggerFactory.getLogger(JobRegistryHelper.class);
@@ -25,13 +27,21 @@ public class JobRegistryHelper {
 		return instance;
 	}
 
+	// 为什么一个使用线程池一个使用线程
+	// 因为线程池处理的是执行器通过registry接口调用的请求，由于不同的执行器ip + port不可能相同（自动注册的），
+	// 所以操作的是不同的行，所以不会存在并发问题
+	// 另一个是更新xxl_job_group，可能是同一行，所以要使用一个线程，避免并发问题
+	// 注册或移除执行器的线程池
 	private ThreadPoolExecutor registryOrRemoveThreadPool = null;
+	// 一个线程，用于监控注册或移除操作的状态
 	private Thread registryMonitorThread;
 	private volatile boolean toStop = false;
 
+	// 启动一个
 	public void start(){
 
 		// for registry or remove
+		// 初始化线程池
 		registryOrRemoveThreadPool = new ThreadPoolExecutor(
 				2,
 				10,
@@ -53,22 +63,35 @@ public class JobRegistryHelper {
 				});
 
 		// for monitor
+		// 启动一个监控线程，用于监控和管理执行器的注册状态
+		//		1、获取自动注册的执行器组：
+		//			从数据库中获取所有地址类型为0的 XxlJobGroup 对象。
+		//		2、移除已死亡的地址：
+		//			查找并移除超过 DEAD_TIMEOUT 时间未更新的注册记录。
+		//		3、刷新在线地址：
+		//			从数据库中获取所有有效的注册记录，并根据应用名称构建地址列表。
+		//		4、更新执行器组的地址列表：
+		//			将构建好的地址列表更新到 XxlJobGroup 对象中，并保存到数据库。
 		registryMonitorThread = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				while (!toStop) {
 					try {
 						// auto registry group
+						// 获取所有地址类型为0的 XxlJobGroup 对象（自动注册）。
+						// 该处理只针对 自动注册的执行器。
 						List<XxlJobGroup> groupList = XxlJobAdminConfig.getAdminConfig().getXxlJobGroupDao().findByAddressType(0);
 						if (groupList!=null && !groupList.isEmpty()) {
 
 							// remove dead address (admin/executor)
+							// 移除已死亡的地址
 							List<Integer> ids = XxlJobAdminConfig.getAdminConfig().getXxlJobRegistryDao().findDead(RegistryConfig.DEAD_TIMEOUT, new Date());
 							if (ids!=null && ids.size()>0) {
 								XxlJobAdminConfig.getAdminConfig().getXxlJobRegistryDao().removeDead(ids);
 							}
 
 							// fresh online address (admin/executor)
+							// 刷新在线地址
 							HashMap<String, List<String>> appAddressMap = new HashMap<String, List<String>>();
 							List<XxlJobRegistry> list = XxlJobAdminConfig.getAdminConfig().getXxlJobRegistryDao().findAll(RegistryConfig.DEAD_TIMEOUT, new Date());
 							if (list != null) {
@@ -89,6 +112,7 @@ public class JobRegistryHelper {
 							}
 
 							// fresh group address
+							// 更新执行器组的地址列表。
 							for (XxlJobGroup group: groupList) {
 								List<String> registryList = appAddressMap.get(group.getAppname());
 								String addressListStr = null;
@@ -113,6 +137,7 @@ public class JobRegistryHelper {
 						}
 					}
 					try {
+						// 每次检查后，线程会休眠 BEAT_TIMEOUT 秒，然后继续下一次检查，直到 toStop 标志被设置为 true。
 						TimeUnit.SECONDS.sleep(RegistryConfig.BEAT_TIMEOUT);
 					} catch (InterruptedException e) {
 						if (!toStop) {
@@ -145,10 +170,12 @@ public class JobRegistryHelper {
 
 
 	// ---------------------- helper ----------------------
-
+	// 调度中心调用的方法
+	// 注册执行器，组要逻辑是修改或添加xxl_job_registry中的一条记录
 	public ReturnT<String> registry(RegistryParam registryParam) {
 
-		// valid
+		// valid argument
+		// 参数校验
 		if (!StringUtils.hasText(registryParam.getRegistryGroup())
 				|| !StringUtils.hasText(registryParam.getRegistryKey())
 				|| !StringUtils.hasText(registryParam.getRegistryValue())) {
@@ -156,9 +183,12 @@ public class JobRegistryHelper {
 		}
 
 		// async execute
+		// 由于registryParam.getRegistryGroup(), registryParam.getRegistryKey(), registryParam.getRegistryValue(), new Date()
+		// 这四个参数不可能完全一样，所以操作的是不同的行，所以不会存在并发问题。
 		registryOrRemoveThreadPool.execute(new Runnable() {
 			@Override
 			public void run() {
+				//
 				int ret = XxlJobAdminConfig.getAdminConfig().getXxlJobRegistryDao().registryUpdate(registryParam.getRegistryGroup(), registryParam.getRegistryKey(), registryParam.getRegistryValue(), new Date());
 				if (ret < 1) {
 					XxlJobAdminConfig.getAdminConfig().getXxlJobRegistryDao().registrySave(registryParam.getRegistryGroup(), registryParam.getRegistryKey(), registryParam.getRegistryValue(), new Date());

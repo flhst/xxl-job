@@ -26,6 +26,8 @@ import java.util.concurrent.*;
  * Copy from : https://github.com/xuxueli/xxl-rpc
  *
  * @author xuxueli 2020-04-11 21:25
+ *
+ * 嵌入式的netty服务器，用于处理任务
  */
 public class EmbedServer {
     private static final Logger logger = LoggerFactory.getLogger(EmbedServer.class);
@@ -33,14 +35,20 @@ public class EmbedServer {
     private ExecutorBiz executorBiz;
     private Thread thread;
 
+    // 启动嵌入式的netty服务器
     public void start(final String address, final int port, final String appname, final String accessToken) {
         executorBiz = new ExecutorBizImpl();
+        // 创建一个新的线程来运行服务器
         thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 // param
+                // bossGroup 负责接受客户端的连接请求，而 workerGroup 负责处理已建立的连接。
+                // 这两个对象是 Netty 框架中用于管理 I/O 操作的线程池。
+                // NioEventLoopGroup 是用来处理IO操作的多线程事件循环器
                 EventLoopGroup bossGroup = new NioEventLoopGroup();
                 EventLoopGroup workerGroup = new NioEventLoopGroup();
+                // 配置业务线程池
                 ThreadPoolExecutor bizThreadPool = new ThreadPoolExecutor(
                         0,
                         200,
@@ -68,9 +76,12 @@ public class EmbedServer {
                                 @Override
                                 public void initChannel(SocketChannel channel) throws Exception {
                                     channel.pipeline()
+                                            // 空闲检测
                                             .addLast(new IdleStateHandler(0, 0, 30 * 3, TimeUnit.SECONDS))  // beat 3N, close if idle
+                                            // 支持http协议
                                             .addLast(new HttpServerCodec())
                                             .addLast(new HttpObjectAggregator(5 * 1024 * 1024))  // merge request & reponse to FULL
+                                            // 业务逻辑处理
                                             .addLast(new EmbedHttpServerHandler(executorBiz, accessToken, bizThreadPool));
                                 }
                             })
@@ -82,6 +93,7 @@ public class EmbedServer {
                     logger.info(">>>>>>>>>>> xxl-job remoting server start success, nettype = {}, port = {}", EmbedServer.class, port);
 
                     // start registry
+                    // 启动注册线程，将当前执行器的信息注册到调度中心
                     startRegistry(appname, address);
 
                     // wait util stop
@@ -125,6 +137,8 @@ public class EmbedServer {
      * <p>
      * Copy from : https://github.com/xuxueli/xxl-rpc
      *
+     * 该类用于接收服务器发送的数据
+     *
      * @author xuxueli 2015-11-24 22:25:15
      */
     public static class EmbedHttpServerHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
@@ -140,10 +154,12 @@ public class EmbedServer {
             this.bizThreadPool = bizThreadPool;
         }
 
+        // 解析请求
         @Override
         protected void channelRead0(final ChannelHandlerContext ctx, FullHttpRequest msg) throws Exception {
             // request parse
             //final byte[] requestBytes = ByteBufUtil.getBytes(msg.content());    // byteBuf.toString(io.netty.util.CharsetUtil.UTF_8);
+            // 获取调用中心发送过来的请求
             String requestData = msg.content().toString(CharsetUtil.UTF_8);
             String uri = msg.uri();
             HttpMethod httpMethod = msg.method();
@@ -151,21 +167,26 @@ public class EmbedServer {
             String accessTokenReq = msg.headers().get(XxlJobRemotingUtil.XXL_JOB_ACCESS_TOKEN);
 
             // invoke
+            // 由线程池进行异步处理，防止阻塞IO
             bizThreadPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     // do invoke
+                    // 处理请求
                     Object responseObj = process(httpMethod, uri, requestData, accessTokenReq);
 
                     // to json
+                    // 得到的结果转成JSON
                     String responseJson = GsonTool.toJson(responseObj);
 
                     // write response
+                    // 返回给调度中心
                     writeResponse(ctx, keepAlive, responseJson);
                 }
             });
         }
 
+        // 具体的处理逻辑
         private Object process(HttpMethod httpMethod, String uri, String requestData, String accessTokenReq) {
             // valid
             if (HttpMethod.POST != httpMethod) {
@@ -181,6 +202,7 @@ public class EmbedServer {
             }
 
             // services mapping
+            // 根据uri进行不同的处理，不过这些处理逻辑全部委托给了ExecutorBiz
             try {
                 switch (uri) {
                     case "/beat":
@@ -208,6 +230,7 @@ public class EmbedServer {
 
         /**
          * write response
+         * 写入返回的http的响应报文，返回给调度中心
          */
         private void writeResponse(ChannelHandlerContext ctx, boolean keepAlive, String responseJson) {
             // write response
@@ -220,17 +243,29 @@ public class EmbedServer {
             ctx.writeAndFlush(response);
         }
 
+        // 处理通道读取完成后的操作
         @Override
         public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
             ctx.flush();
         }
 
+        // 处理异常
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             logger.error(">>>>>>>>>>> xxl-job provider netty_http server caught exception", cause);
             ctx.close();
         }
 
+        // 处理 Netty 服务器中的用户事件。
+        //      1、检查事件类型：
+        //          判断传入的事件 evt 是否为 IdleStateEvent 类型。
+        //      2、关闭空闲连接：
+        //          如果是 IdleStateEvent，
+        //          则关闭当前通道，并记录日志。
+        //      3、调用父类方法：
+        //          如果不是 IdleStateEvent，
+        //          则调用父类的 userEventTriggered
+        //          方法处理其他类型的事件。
         @Override
         public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
             if (evt instanceof IdleStateEvent) {
@@ -244,6 +279,7 @@ public class EmbedServer {
 
     // ---------------------- registry ----------------------
 
+    // 启动注册线程，将当前执行器的信息注册到调度中心。
     public void startRegistry(final String appname, final String address) {
         // start registry
         ExecutorRegistryThread.getInstance().start(appname, address);
